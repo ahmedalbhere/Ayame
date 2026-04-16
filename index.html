@@ -379,11 +379,11 @@
         <div class="sub">حساب العمر بدقة • حفظ تلقائي • بطاقة معايدة</div>
     </div>
 
-    <!-- حقل إدخال الاسم - حفظ تلقائي -->
+    <!--  إدخال الاسم  -->
     <div class="name-section">
         <label>👤 اسمي:</label>
         <input type="text" id="usernameInput" placeholder="اكتب اسمك (يتم حفظه تلقائياً)" autocomplete="off">
-        <span class="name-hint">💾 يتم حفظ الاسم تلقائياً</span>
+       
     </div>
 
     <div class="input-group-row">
@@ -415,7 +415,7 @@
     </div>
 
     <div id="specialBirthdayContainer" style="margin-top: 20px;"></div>
-    <footer>🐢💖 أيامي - يحفظ تاريخ ميلادك و اسمك تلقائياً • بطاقة معايدة بقلوب و طوطه 💖🐢</footer>
+    <footer>🐢💖 أيامي - يحفظ تاريخ ميلادك و اسمك تلقائياً 💖🐢</footer>
 </div>
 
 <script>
@@ -569,14 +569,14 @@
             if (type === 'full') {
                 titleMsg = `🎊🎂 عيد ميلاد سعيد يا ${displayName} 🎂🎊`;
                 bodyMsg = `اليوم ${currentDate.getDate()} ${currentDate.toLocaleDateString('ar-EG', { month: 'long' })} هو يوم ميلادك! 🎉🐢✨ 
-                           كل عام وانت ألف خير، تحبك أيامي بكل 💖 وطوطه.`;
+                           كل عام وانت ألف خير، تحبك أيامي  💖 .`;
                 extraDecor = '🐢💖🎂🎈🎉❤️🧡💛';
             } else {
                 const monthName = birthDate.toLocaleDateString('ar-EG', { month: 'long' });
                 const birthDayNum = birthDate.getDate();
                 titleMsg = `🌙✨ شهر ميلادك المبارك يا ${displayName} ✨🌙`;
                 bodyMsg = `ذكرى ميلادك قادمة قريباً! عيد ميلادك يوم ${birthDayNum} من شهر ${monthName}. 
-                           نرسل لك قلوب ❤️🧡💛 وطوطه 🐢 الجميلة ونسأل الله لك السعادة.`;
+                           نرسل لك قلوب ❤️🧡💛  🐢 الجميلة ونسأل الله لك السعادة.`;
                 extraDecor = '🌸🐢💖🎁🌟⭐❤️';
             }
             
@@ -587,7 +587,7 @@
                     <div class="personal-name-highlight">${displayName}</div>
                     <div class="birthday-sub-message">${bodyMsg}</div>
                     <div style="font-size: 2rem; letter-spacing: 8px; margin: 12px 0;">${extraDecor}</div>
-                    <button id="downloadCelebrationBtn" class="download-btn">📸 تحميل الصورة 📸</button>
+                    <button id="downloadCelebrationBtn" class="download-btn">📸 تحميل  📸</button>
                 </div>
             `;
             containerDiv.innerHTML = innerHtml;
