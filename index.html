@@ -329,13 +329,15 @@
             z-index: 2;
         }
 
-        /* زر التحميل الخارجي الجديد - واضح ومنفصل تماماً */
-        .external-download-wrapper {
+        /* حاوية الأزرار الخارجية (تحميل + مشاركة) */
+        .external-buttons-wrapper {
             display: flex;
             justify-content: center;
+            gap: 16px;
             margin: 20px 0 5px 0;
+            flex-wrap: wrap;
         }
-        .download-card-btn {
+        .action-btn {
             background: linear-gradient(95deg, #10b981, #059669);
             border: none;
             padding: 14px 28px;
@@ -352,15 +354,17 @@
             font-family: inherit;
             letter-spacing: 1px;
         }
-        .download-card-btn:hover {
-            background: linear-gradient(95deg, #059669, #047857);
+        .action-btn.share-btn {
+            background: linear-gradient(95deg, #8b5cf6, #6d28d9);
+        }
+        .action-btn:hover {
             transform: scale(0.97);
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
-        .download-card-btn:active {
+        .action-btn:active {
             transform: scale(0.96);
         }
-        .download-card-btn.disabled-btn {
+        .action-btn.disabled-btn {
             opacity: 0.6;
             pointer-events: none;
         }
@@ -372,13 +376,35 @@
             color: #475569;
         }
 
+        /* رسالة منبثقة للمشاركة */
+        .toast-msg {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) scale(0.9);
+            background: #1e293bdd;
+            backdrop-filter: blur(10px);
+            color: #facc15;
+            padding: 12px 24px;
+            border-radius: 60px;
+            font-weight: bold;
+            z-index: 1000;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            opacity: 0;
+            pointer-events: none;
+            white-space: nowrap;
+            border: 1px solid #facc15;
+        }
+
         @media (max-width: 550px) {
             .card { padding: 1.2rem; }
             .exact-age-text { font-size: 1.1rem; }
             .stat-value { font-size: 1.3rem; }
             .birthday-message-title { font-size: 1.3rem; }
             .site-name { font-size: 1.6rem; }
-            .download-card-btn { padding: 10px 20px; font-size: 0.9rem; }
+            .action-btn { padding: 10px 20px; font-size: 0.9rem; }
+            .toast-msg { white-space: normal; width: 80%; text-align: center; font-size: 0.8rem; }
         }
     </style>
 </head>
@@ -428,13 +454,17 @@
     <!-- حاوية خاصة لبطاقة التهنئة (بدون أي زر بداخلها) -->
     <div id="specialBirthdayContainer" style="margin-top: 20px;"></div>
 
-    <!-- زر التحميل المنفصل (خارج البطاقة) -->
-    <div class="external-download-wrapper" id="externalDownloadWrapper" style="display: none;">
-        <button id="externalDownloadBtn" class="download-card-btn">📸 احفظ بطاقة التهنئة كصورة 📸</button>
+    <!-- حاوية الأزرار الخارجية: زر التحميل + زر المشاركة (بجانب بعض) -->
+    <div class="external-buttons-wrapper" id="externalButtonsWrapper" style="display: none;">
+        <button id="externalDownloadBtn" class="action-btn">📸 احفظ كصورة 📸</button>
+        <button id="externalShareBtn" class="action-btn share-btn">🔗 شارك البطاقة 🔗</button>
     </div>
 
     <footer>🐢💖 أيامي الجميله 💖🐢</footer>
 </div>
+
+<!-- رسالة مؤقتة للمشاركة -->
+<div id="toastMessage" class="toast-msg"></div>
 
 <script>
     (function() {
@@ -451,10 +481,12 @@
         const todayDateSpan = document.getElementById('todayDateSpan');
         const specialContainer = document.getElementById('specialBirthdayContainer');
         const usernameInput = document.getElementById('usernameInput');
-        const externalWrapper = document.getElementById('externalDownloadWrapper');
+        const externalWrapper = document.getElementById('externalButtonsWrapper');
         const externalDownloadBtn = document.getElementById('externalDownloadBtn');
+        const externalShareBtn = document.getElementById('externalShareBtn');
+        const toastMsgDiv = document.getElementById('toastMessage');
         
-        // متغير لتخزين مرجع بطاقة المعايدة الحالية لاستخدامها في التحميل
+        // متغير لتخزين مرجع بطاقة المعايدة الحالية لاستخدامها في التحميل والمشاركة
         let currentCelebrationCardElement = null;
 
         // مفاتيح التخزين المحلي
@@ -562,7 +594,7 @@
             return (birthDate.getMonth() === currentDate.getMonth()) && (birthDate.getDate() !== currentDate.getDate());
         }
 
-        // إنشاء بطاقة تهنئة مميزة بدون أي زر داخلي (تم إزالة زر التحميل من داخلها)
+        // إنشاء بطاقة تهنئة مميزة بدون أي زر داخلي
         function createBirthdayCardElement(type, birthDate, currentDate, userName) {
             const containerDiv = document.createElement('div');
             containerDiv.className = 'birthday-celebration';
@@ -598,7 +630,7 @@
                 extraDecor = '🌸🐢💖🎁🌟⭐❤️';
             }
             
-            // المحتوى الداخلي بدون أي زر، فقط عناصر المعايدة
+            // المحتوى الداخلي بدون أي زر
             const innerHtml = `
                 <div style="position: relative; z-index: 2;">
                     <div class="birthday-message-title">${titleMsg}</div>
@@ -615,15 +647,21 @@
             return containerDiv;
         }
 
+        // عرض رسالة منبثقة
+        function showToast(message, duration = 2500) {
+            toastMsgDiv.innerText = message;
+            toastMsgDiv.style.opacity = '1';
+            toastMsgDiv.style.transform = 'translateX(-50%) scale(1)';
+            setTimeout(() => {
+                toastMsgDiv.style.opacity = '0';
+                toastMsgDiv.style.transform = 'translateX(-50%) scale(0.9)';
+            }, duration);
+        }
+
         // وظيفة التحميل باستخدام الزر الخارجي (تحويل البطاقة الحالية إلى صورة)
         async function downloadCelebrationCard() {
             if (!currentCelebrationCardElement) {
-                // إذا لم توجد بطاقة، نعطي تنبيه بسيط
-                const tempAlert = document.createElement('div');
-                tempAlert.className = 'error';
-                tempAlert.innerText = 'لا توجد بطاقة تهنئة للتحميل حالياً، اختر تاريخ ميلاد صحيح.';
-                document.getElementById('resultArea').appendChild(tempAlert);
-                setTimeout(() => { if(tempAlert.remove) tempAlert.remove(); }, 2000);
+                showToast('❌ لا توجد بطاقة تهنئة للتحميل، اختر تاريخ ميلاد صحيح.', 2000);
                 return;
             }
             
@@ -631,10 +669,9 @@
             if (!btn) return;
             
             try {
-                // تعطيل الزر مؤقتاً أثناء التحميل وتغيير مظهره
                 btn.classList.add('disabled-btn');
                 const originalText = btn.innerHTML;
-                btn.innerHTML = '⏳ جاري تحضير الصورة... ⏳';
+                btn.innerHTML = '⏳ جاري التحضير... ⏳';
                 
                 const canvas = await html2canvas(currentCelebrationCardElement, {
                     scale: 2.8,
@@ -650,29 +687,79 @@
                 link.href = canvas.toDataURL('image/png');
                 link.click();
                 
-                // إعادة الزر لحالته الطبيعية
                 btn.innerHTML = originalText;
                 btn.classList.remove('disabled-btn');
-                // وميض بسيط للإشعار
-                btn.style.transform = 'scale(0.98)';
+                showToast('✅ تم حفظ البطاقة كصورة!', 2000);
                 setTimeout(() => { if(btn) btn.style.transform = ''; }, 150);
             } catch(err) {
                 console.error("خطأ أثناء تحميل الصورة", err);
                 if(btn) {
                     btn.classList.remove('disabled-btn');
-                    btn.innerHTML = '📸 احفظ بطاقة التهنئة كصورة 📸';
-                    // عرض رسالة خطأ سريعة
-                    const errorDiv = document.createElement('div');
-                    errorDiv.className = 'error';
-                    errorDiv.innerText = 'حدث خطأ أثناء إنشاء الصورة، حاول مرة أخرى.';
-                    document.getElementById('resultArea').appendChild(errorDiv);
-                    setTimeout(() => { if(errorDiv.remove) errorDiv.remove(); }, 2500);
+                    btn.innerHTML = '📸 احفظ كصورة 📸';
                 }
+                showToast('⚠️ حدث خطأ أثناء إنشاء الصورة، حاول مرة أخرى.', 2500);
             }
         }
 
-        // إظهار / إخفاء الزر الخارجي بناءً على وجود بطاقة
-        function setExternalDownloadButtonVisibility(show) {
+        // وظيفة المشاركة: محاولة استخدام Web Share API أو نسخ الصورة كرابط
+        async function shareCelebrationCard() {
+            if (!currentCelebrationCardElement) {
+                showToast('❌ لا توجد بطاقة للمشاركة، اختر تاريخ ميلاد صحيح.', 2000);
+                return;
+            }
+            
+            const btn = externalShareBtn;
+            try {
+                if (btn) btn.classList.add('disabled-btn');
+                
+                // تحويل البطاقة إلى blob صورة لمشاركتها عبر Web Share API (إذا كان الجهاز يدعم مشاركة الملفات)
+                const canvas = await html2canvas(currentCelebrationCardElement, {
+                    scale: 2.5,
+                    backgroundColor: '#fff9f0',
+                    logging: false
+                });
+                
+                // تحويل canvas إلى blob
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                if (!blob) throw new Error('فشل تحويل الصورة');
+                
+                const file = new File([blob], `تهنئة_أيامي.png`, { type: 'image/png' });
+                
+                // التحقق من دعم Web Share API للملفات
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        title: 'أيامي - بطاقة تهنئة',
+                        text: '🎉 عيد ميلاد سعيد! 🎂 مشاركة من تطبيق أيامي',
+                        files: [file]
+                    });
+                    showToast('🎉 تمت المشاركة بنجاح! 🎉', 2000);
+                } 
+                // إذا كان يدعم المشاركة لكن بدون ملفات (بعض المتصفحات) نشارك نص + رابط
+                else if (navigator.share) {
+                    await navigator.share({
+                        title: 'أيامي - بطاقة تهنئة',
+                        text: '🎂 أرسل لك أحر التهاني بمناسبة عيد ميلادك من تطبيق أيامي 🐢💖',
+                        url: window.location.href
+                    });
+                    showToast('✨ تمت المشاركة بنجاح ✨', 2000);
+                }
+                else {
+                    // بديل: نسخ رابط الصورة أو تنبيه بأنه يمكن حفظ الصورة ثم مشاركتها يدويًا
+                    // نقوم بعرض رسالة توجيهية ونسخ نص مميز للحافظة
+                    const shareText = `🎂✨ مناسبة سعيدة! ✨🎂\n${document.querySelector('.birthday-message-title')?.innerText || 'عيد ميلاد سعيد'}\n${document.querySelector('.birthday-sub-message')?.innerText || ''}\n\n تم إنشاؤها بواسطة تطبيق أيامي - حاسبة العمر مع الذكريات.`;
+                    await navigator.clipboard.writeText(shareText);
+                    showToast('📋 تم نسخ نص التهنئة! يمكنك لصقها ومشاركة الصورة المحفوظة.', 3500);
+                }
+            } catch (err) {
+                console.error('خطأ في المشاركة:', err);
+                showToast('⚠️ تعذرت المشاركة، يمكنك حفظ الصورة أولاً ثم مشاركتها.', 3000);
+            } finally {
+                if (btn) btn.classList.remove('disabled-btn');
+            }
+        }
+
+        // إظهار / إخفاء الأزرار الخارجية بناءً على وجود بطاقة
+        function setExternalButtonsVisibility(show) {
             if (show && currentCelebrationCardElement) {
                 externalWrapper.style.display = 'flex';
             } else {
@@ -680,16 +767,16 @@
             }
         }
 
-        // مسح البطاقة الحالية وإخفاء الزر
+        // مسح البطاقة الحالية وإخفاء الأزرار
         function clearCelebration() {
             if (specialContainer) specialContainer.innerHTML = '';
             currentCelebrationCardElement = null;
-            setExternalDownloadButtonVisibility(false);
+            setExternalButtonsVisibility(false);
         }
 
-        // إنشاء وعرض بطاقة المعايدة وربط الزر الخارجي بها
+        // إنشاء وعرض بطاقة المعايدة وربط الأزرار الخارجية بها
         function showBirthdayCelebration(birthDate, currentDate, userName) {
-            clearCelebration(); // إزالة البطاقة السابقة
+            clearCelebration(); 
             let celebrationType = null;
             if (isFullBirthday(birthDate, currentDate)) celebrationType = 'full';
             else if (isBirthMonthOnly(birthDate, currentDate)) celebrationType = 'monthOnly';
@@ -697,9 +784,8 @@
             if (celebrationType) {
                 const card = createBirthdayCardElement(celebrationType, birthDate, currentDate, userName);
                 specialContainer.appendChild(card);
-                currentCelebrationCardElement = card;  // تخزين المرجع للتحميل
-                setExternalDownloadButtonVisibility(true);
-                // تعديل تدرج النص حسب المناسبة
+                currentCelebrationCardElement = card;  
+                setExternalButtonsVisibility(true);
                 if (celebrationType === 'full') {
                     exactAgePhrase.style.background = "linear-gradient(135deg, #ff99cc, #ff4d4d)";
                     exactAgePhrase.style.webkitBackgroundClip = "text";
@@ -708,7 +794,7 @@
                 }
             } else {
                 currentCelebrationCardElement = null;
-                setExternalDownloadButtonVisibility(false);
+                setExternalButtonsVisibility(false);
                 exactAgePhrase.style.background = "linear-gradient(135deg, #facc15, #f97316)";
             }
         }
@@ -726,16 +812,14 @@
         }
         function clearError() { const e = document.querySelector('.error'); if(e) e.remove(); }
 
-        // حفظ الاسم تلقائياً وتحديث البطاقة في حال وجودها
+        // حفظ الاسم تلقائياً وتحديث البطاقة
         function autoSaveName() {
             const name = usernameInput.value.trim();
             saveNameToStorage(name);
-            // تحديث البطاقة إذا كان لدينا تاريخ ميلاد صالح ومناسبة موجودة
             const birth = getBirthDateFromInputs();
             if (birth) {
                 const currentDateObj = new Date();
                 const currentUserName = usernameInput.value.trim();
-                // إعادة بناء المعايدة مع الاسم الجديد (دون تغيير العمر)
                 let celebrationType = null;
                 if (isFullBirthday(birth, currentDateObj)) celebrationType = 'full';
                 else if (isBirthMonthOnly(birth, currentDateObj)) celebrationType = 'monthOnly';
@@ -744,86 +828,4 @@
                     const newCard = createBirthdayCardElement(celebrationType, birth, currentDateObj, currentUserName);
                     specialContainer.appendChild(newCard);
                     currentCelebrationCardElement = newCard;
-                    setExternalDownloadButtonVisibility(true);
-                } else if (!celebrationType && currentCelebrationCardElement) {
-                    // إذا لم يعد هناك مناسبة نخفي البطاقة
-                    clearCelebration();
-                }
-            }
-        }
-
-        // الوظيفة الرئيسية لحساب العمر وعرض كل شيء
-        function updateAgeAndSave() {
-            clearError();
-            let birthDateObj = getBirthDateFromInputs();
-            if (!birthDateObj) {
-                showError('الرجاء إدخال تاريخ ميلاد صحيح');
-                return;
-            }
-            const currentDateObj = new Date();
-            if (birthDateObj > currentDateObj) {
-                showError('تاريخ الميلاد لا يمكن أن يكون بعد اليوم الحالي');
-                return;
-            }
-            saveBirthdateToLocalStorage(birthDateObj);
-            const age = calculateExactAge(birthDateObj, currentDateObj);
-            const agePhrase = formatAgeText(age.years, age.months, age.days);
-            exactAgePhrase.innerText = agePhrase;
-            yearsStat.innerText = age.years;
-            monthsStat.innerText = age.months;
-            daysStat.innerText = age.days;
-            totalDaysStat.innerText = age.totalDays.toLocaleString('ar-EG');
-            todayDateSpan.innerHTML = `📅 اليوم: ${formatCurrentDate(currentDateObj)}`;
-            
-            const currentUserName = usernameInput.value.trim() !== "" ? usernameInput.value.trim() : "";
-            showBirthdayCelebration(birthDateObj, currentDateObj, currentUserName);
-        }
-        
-        // تحميل البيانات المخزنة
-        function loadInitialData() {
-            loadNameFromStorage();
-            const storedBirth = loadBirthdateFromStorage();
-            if (storedBirth) {
-                updateAgeAndSave();
-            } else {
-                const def = new Date();
-                def.setFullYear(def.getFullYear() - 25);
-                dayInput.value = def.getDate();
-                monthInput.value = def.getMonth() + 1;
-                yearInput.value = def.getFullYear();
-                updateAgeAndSave();
-            }
-        }
-
-        // ربط الأحداث
-        calcBtn.addEventListener('click', () => updateAgeAndSave());
-        usernameInput.addEventListener('input', autoSaveName);
-        
-        // زر التحميل الخارجي
-        if (externalDownloadBtn) {
-            externalDownloadBtn.addEventListener('click', downloadCelebrationCard);
-        }
-        
-        const inputsArr = [dayInput, monthInput, yearInput];
-        inputsArr.forEach(inp => {
-            inp.addEventListener('change', () => {
-                const day = parseInt(dayInput.value);
-                const month = parseInt(monthInput.value);
-                const year = parseInt(yearInput.value);
-                if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-                    const maxDays = getDaysInMonth(year, month);
-                    if (day > maxDays) dayInput.value = maxDays;
-                    if (day < 1) dayInput.value = 1;
-                }
-                updateAgeAndSave();
-            });
-            inp.addEventListener('keypress', (e) => { if(e.key === 'Enter') updateAgeAndSave(); });
-        });
-        
-        window.addEventListener('DOMContentLoaded', () => {
-            loadInitialData();
-        });
-    })();
-</script>
-</body>
-</html>
+                    setExternalButtonsVisibility
